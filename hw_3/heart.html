@@ -1,0 +1,161 @@
+﻿<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8"/>
+	<title>Стената</title>
+
+	<script src="util.js"></script>
+
+	<script id="id_vshader" type="x-shader/x-vertex">
+		uniform mat4 uProjectionMatrix;
+		uniform mat4 uViewMatrix;
+		uniform mat4 uModelMatrix;
+		attribute vec3 aXYZ;
+		void main ()
+		{
+			gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aXYZ,1);
+		}
+	</script>
+
+	<script id="id_fshader" type="x-shader/x-fragment">
+		precision mediump float;
+		uniform vec3 uColor;
+		void main( )
+		{
+			gl_FragColor = vec4(uColor,1);
+		}
+	</script>
+
+	<script>
+
+		function cube()
+		{
+			useMatrix();
+			gl.drawArrays(gl.LINE_LOOP,0,4);
+			gl.drawArrays(gl.LINE_LOOP,4,4);
+			gl.drawArrays(gl.LINES,8,8);
+		}
+
+		function drawColumn()
+		{
+			const rows = 20;
+			//Scaling  the unit cube
+			scale([0.5, 2, 0.5]);
+			// Draw a column
+			for( var i=1; i<=rows; i++ )
+			{
+					if (i % 2)
+						translate([0,0.5,1]); // Translating the bricks on the odd rows on the right
+					else
+						translate([0,-0.5,1]); // Translating the bricks on the even rows on the left
+					cube();
+			}
+		}
+		function drawHeart()
+		{
+			var N = 60;
+			for(var i=1; i<=N; i++)
+			{
+				var angle = 0;
+				if  (i > 2)
+				{
+					angle = i*2*Math.PI/60;
+					var x = 16 * Math.sin(angle) * Math.sin(angle)* Math.sin(angle);
+					var y = 13*Math.cos(angle) - 5*Math.cos(2*angle) - 2*Math.cos(3*angle) - Math.cos(4*angle);
+					drawColumn();
+				}
+				identity();
+				translate([x, y,0]);
+
+				// Rotating the bricks
+				if (i > 2)
+				{
+					// Derivative of the function
+					var dy = -13*Math.sin(angle) + 10*Math.sin(2*angle) + 6*Math.sin(3*angle) + 4*Math.sin(4*angle);
+					var dx = 48 * Math.sin(angle) * Math.sin(angle) * Math.cos(angle);
+					var rotation_angle = Math.atan2(dy, dx) * 180/Math.PI;
+					zRotate(90 - rotation_angle);
+				}
+			}
+		}
+		function prepBuffer(data)
+		{
+			var buf = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+
+			gl.enableVertexAttribArray(aXYZ);
+			gl.vertexAttribPointer(aXYZ,3,gl.FLOAT,false,0,0);
+
+			gl.uniform3f(uColor,0.7,0.1,0.1);
+		}
+	</script>
+
+	<script>
+		function start()
+		{
+			gl = getContext("id_picasso");
+			glprog = getProgram("id_vshader","id_fshader");
+
+			aXYZ = gl.getAttribLocation(glprog,"aXYZ");
+			uColor = gl.getUniformLocation(glprog,"uColor");
+			uProjectionMatrix = gl.getUniformLocation(glprog,"uProjectionMatrix");
+			uViewMatrix = gl.getUniformLocation(glprog,"uViewMatrix");
+			uModelMatrix = gl.getUniformLocation(glprog,"uModelMatrix");
+
+			gl.clearColor(1,1,1,1);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+
+			var proj = perspMatrix(30,gl.canvas.width/gl.canvas.height,1,40000);
+			gl.uniformMatrix4fv(uProjectionMatrix,false,proj);
+
+			//Up + On the side preview
+			var view = viewMatrix([50,0,60], [-10,0,0], [0,0,10]);
+			gl.uniformMatrix4fv(uViewMatrix,false,view);
+
+			//Up preview
+			// var view = viewMatrix([0,0,100], [0,0,0], [0,1,0]);
+			// gl.uniformMatrix4fv(uViewMatrix,false,view);
+
+			//On the side preview
+			// var view = viewMatrix([-20, -30,7], [0,0,5], [0,0,10]);
+			// gl.uniformMatrix4fv(uViewMatrix,false,view);
+
+			// unit cube
+			var data = [ +0.5,-0.5,+0.5,
+						 +0.5,+0.5,+0.5,
+						 -0.5,+0.5,+0.5,
+						 -0.5,-0.5,+0.5,
+						 +0.5,-0.5,-0.5,
+						 +0.5,+0.5,-0.5,
+						 -0.5,+0.5,-0.5,
+						 -0.5,-0.5,-0.5,
+
+						 +0.5,-0.5,+0.5,
+						 +0.5,-0.5,-0.5,
+						 +0.5,+0.5,+0.5,
+						 +0.5,+0.5,-0.5,
+						 -0.5,+0.5,+0.5,
+						 -0.5,+0.5,-0.5,
+						 -0.5,-0.5,+0.5,
+						 -0.5,-0.5,-0.5
+			];
+
+			prepBuffer(data);
+			identity();
+			drawHeart();
+		}
+	</script>
+</head>
+
+<body onload="start()">
+	<h2>Стената</h2>
+
+	<noscript>
+		Cannot retrive JS..
+	</noscript>
+
+	<canvas id="id_picasso" width="600" height="400" style="border: solid;">
+		Cannot retrive canvas..
+	</canvas>
+</body>
